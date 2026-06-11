@@ -53,6 +53,23 @@ class AbstractUserStore(Protocol):
             UserInDB if found, None otherwise.
         """
         ...
+    
+    async def get_by_username(self, username: str) -> UserInDB | None:
+        """Look up a user by username (case-insensitive recommended).
+ 
+        Returns None if username lookup is not supported or the user is not found.
+        Only required when ``"username"`` is in ``login_identifier_fields``.
+        """
+        ...
+ 
+    async def get_by_phone(self, phone: str) -> UserInDB | None:
+        """Look up a user by phone number (E.164 format recommended).
+ 
+        Returns None if phone lookup is not supported or the user is not found.
+        Only required when ``"phone"`` is in ``login_identifier_fields``.
+        """
+        ...
+ 
 
     async def create(self, user: UserInDB) -> UserInDB:
         """Persist a new user record.
