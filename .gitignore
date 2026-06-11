@@ -9,3 +9,4 @@ dist/
 .env
 .env.*
 *.pem
+../__pycache__/

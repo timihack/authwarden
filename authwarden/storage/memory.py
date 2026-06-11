@@ -14,6 +14,7 @@ Usage::
 from __future__ import annotations
 
 from authwarden.models.user import OAuthAccount, UserInDB
+from authwarden.storage.base import AbstractUserStore
 
 
 class MemoryUserStore:
@@ -26,7 +27,25 @@ class MemoryUserStore:
   def __init__(self) -> None:
       self._users: dict[str, UserInDB] = {}
       self._email_index: dict[str, str] = {}          # email.lower() → user_id
+      self._username_index: dict[str, str] = {}       # username.lower() → user_id
+      self._phone_index: dict[str, str] = {}          # phone → user_id
       self._oauth_accounts: dict[str, OAuthAccount] = {}  # account.id → OAuthAccount
+
+
+  # ---- Helpers --------------------------------------------------------------------
+  def _remove_indexex(self, user: UserInDB) -> None:
+      self._email_index.pop(user.email.lower(), None)
+      if user.username:
+          self._username_index.pop(user.username.lower(), None)
+      if user.phone_number:
+          self._phone_index.pop(user.phone_number, None)
+
+  def _add_indexes(self, user: UserInDB) -> None:
+      self._email_index[user.email.lower()] = user.id
+      if user.username:
+          self._username_index[user.username.lower()] = user.id
+      if user.phone_number:
+          self._phone_index[user.phone_number] = user.id
 
   # ── User CRUD ─────────────────────────────────────────────────────────────
 
@@ -36,10 +55,18 @@ class MemoryUserStore:
 
   async def get_by_email(self, email: str) -> UserInDB | None:
       """Return the user with the given email (case-insensitive), or None."""
-      user_id = self._email_index.get(email.lower())
-      if user_id is None:
-          return None
-      return self._users.get(user_id)
+      uid = self._email_index.get(email.lower())
+      return self._users.get(uid) if uid else None
+  
+  async def get_by_username(self, username: str) -> UserInDB | None:
+      """Return the user with the given username (case-insensitive), or None."""
+      uid = self._username_index.get(username.lower())
+      return self._users.get(uid) if uid else None
+
+  async def get_by_phone(self, phone: str) -> UserInDB | None:
+      """Return the user with the given phone number, or None."""
+      uid = self._phone_index.get(phone)
+      return self._users.get(uid) if uid else None
 
   async def create(self, user: UserInDB) -> UserInDB:
       """Store a new user and update the email index.
@@ -51,7 +78,7 @@ class MemoryUserStore:
           The same UserInDB instance.
       """
       self._users[user.id] = user
-      self._email_index[user.email.lower()] = user.id
+      self._add_indexes(user)
       return user
 
   async def update(self, user: UserInDB) -> UserInDB:
@@ -67,16 +94,19 @@ class MemoryUserStore:
       Returns:
           The updated UserInDB instance.
       """
-      # Find any old email index entries pointing to this user_id and remove them
-      old_emails = [
-          email for email, uid in self._email_index.items() if uid == user.id
-      ]
-      for old_email in old_emails:
-          if old_email != user.email.lower():
-              del self._email_index[old_email]
+      # Find any old/stale entries pointing to this user_id and remove them
+      stale_emails = [e for e, uid in self._email_index.items() if uid == user.id and e != user.email.lower()]
+      for e in stale_emails:
+          del self._email_index[e]
+      stale_usernames = [u for u, uid in self._username_index.items() if uid == user.id and u != (user.username or "").lower()]
+      for u in stale_usernames:
+          del self._username_index[u]
+      stale_phones = [p for p, uid in self._phone_index.items() if uid == user.id and p != user.phone_number]
+      for p in stale_phones:
+        del self._phone_index[p]
 
       self._users[user.id] = user
-      self._email_index[user.email.lower()] = user.id
+      self._add_indexes(user)
       return user
 
   async def delete(self, user_id: str) -> None:
@@ -88,6 +118,16 @@ class MemoryUserStore:
       user = self._users.pop(user_id, None)
       if user:
           self._email_index.pop(user.email.lower(), None)
+
+  async def delete(self, user: UserInDB) -> None:
+      """Remove a user and their email index entry.
+
+      Args:
+          user: UserInDB instance to remove.
+      """
+      self._users.pop(user.id, None)
+      if user:
+          self._remove_indexes(user)
 
   # ── OAuth accounts ────────────────────────────────────────────────────────
 
@@ -165,11 +205,13 @@ class MemoryUserStore:
 
   def clear(self) -> None:
       """Reset the store to empty state. Useful between test cases."""
-      self._users.clear()
-      self._email_index.clear()
+      self._users.clear(); self._email_index.clear()
+      self._username_index.clear(); self._phone_index.clear()
       self._oauth_accounts.clear()
 
   @property
   def user_count(self) -> int:
       """Return the total number of stored users."""
       return len(self._users)
+  
+assert isinstance(MemoryUserStore(), AbstractUserStore), "MemoryUserStore does not satisfy AbstractUserStore protocol"

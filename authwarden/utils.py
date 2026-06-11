@@ -6,10 +6,7 @@ Never implement custom crypto here — use proven primitives only.
 """
 from __future__ import annotations
 
-import hashlib
-import hmac
-import secrets
-import uuid
+import hashlib,hmac, secrets, uuid
 from datetime import datetime, timezone
 
 def utcnow() -> datetime:
@@ -38,6 +35,16 @@ def generate_secure_token(nbytes: int = 32) -> str:
   """
   return secrets.token_urlsafe(nbytes)
 
+def generate_otp(length: int = 6) -> str:
+  """Generate a cryptographically secure numeric OTP.
+
+  Args:
+      length: Number of digits (default 6).
+
+  Returns:
+      String of ``length`` random digits, zero-padded.
+  """
+  return "".join(str(secrets.randbelow(10)) for _ in range(length))
 
 def hash_token(token:str) -> str:
   """Return a hex-encoded SHA-256 hash of the given token.
