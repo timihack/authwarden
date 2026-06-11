@@ -12,12 +12,8 @@ from typing import Protocol, runtime_checkable
 from pydantic import BaseModel, Field
 
 
-def _now() -> datetime:
-  return datetime.now(timezone.utc)
-
-
-def _uuid() -> str:
-  return str(uuid.uuid4())
+def _now() -> datetime: return datetime.now(timezone.utc)
+def _uuid() -> str: return str(uuid.uuid4())
 
 
 class SessionData(BaseModel):
