@@ -84,6 +84,28 @@ class WardenConfig(BaseSettings):
   emails_from_name: str = "AuthWarden"
   emails_from_address: str = "noreply@example.com"
 
+  # ---- SMS -----------------------------------------------------------------
+  twilio_account_sid: str | None = None
+  twilio_auth_token: str | None = None
+  twilio_from_number: str | None = None
+  aws_sns_region: str | None = None
+  aws_sns_sender_id: str | None = None
+
+  # ---- Login identifiers ---------------------------------------------------
+  # Tried in order - first match wins
+  # e.g ["email", "username", "phone"] tries email first, then username
+  login_identifier_fields: list[Literal["email", "username", "phone"]] = ["email"]
+
+  # ---- Verification --------------------------------------------------------
+  verification_method: Literal["link", "otp"] = "link"
+  verification_channels: list[Literal["email", "sms"]] = ["email"]
+  otp_length: int = 6
+  otp_ttl: int = 600 # 10 minutes
+
+  # ---- Password Request ----------------------------------------------------
+  password_reset_method: Literal["link", "otp"] = "link"
+  password_reset_channels: list[Literal["email", "sms"]] = ["email"]
+
   # ── Token TTLs for flows ──────────────────────────────────────────────────
   email_verification_ttl: int = 86400     # 24 hours
   password_reset_ttl: int = 3600          # 1 hour
