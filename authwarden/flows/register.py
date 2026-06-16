@@ -6,7 +6,7 @@ from itsdangerous import URLSafeTimedSerializer
 
 from authwarden.authentication.password import PasswordHandler
 from authwarden.core.config import WardenConfig
-from authwarden.exceptions import EmailAlreadyExists
+from authwarden.exceptions import EmailAlreadyExists, PhoneAlreadyExists, UsernameAlreadyExists, WeakPassword
 from authwarden.models.user import UserCreate, UserInDB, UserRead
 from authwarden.notifications.service import AbstractNotificationService
 from authwarden.storage.base import AbstractUserStore
@@ -39,24 +39,31 @@ async def register_flow(
     Raises:
         WeakPassword:       Password violates the configured policy.
         EmailAlreadyExists: The email is already registered.
+        PhoneAlreadyExists: The phone number is already registered.
+        UsernameAlreadyExists: The username is already registered.
     """
     password_handler.check_policy(data.password)
 
-    existing = await store.get_by_email(str(data.email))
-    if existing is not None:
+    if await store.get_by_email(str(data.email)):
         raise EmailAlreadyExists()
-    
+
+    if data.username and await store.get_by_username(str(data.username)):
+        raise UsernameAlreadyExists()
+
+    if data.phone_number and await store.get_by_phone(str(data.phone_number)):
+        raise PhoneAlreadyExists()
+
     need_verification = config.require_email_verification
     now = utcnow()
     user = UserInDB(
-        email=data.email,
+        email=str(data.email),
         username=data.username,
         full_name=data.full_name,
+        phone_number=str(data.phone_number) if data.phone_number else None,
         hashed_password=password_handler.hash_password(data.password),
         is_active=not need_verification,
         is_verified=not need_verification,
-        created_at=now,
-        updated_at=now,
+        created_at=now, updated_at=now,
     )
 
     if need_verification and config.verification_method == "otp":

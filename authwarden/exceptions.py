@@ -22,6 +22,18 @@ class EmailAlreadyExists(AuthError):
   status_code = 409
   detail = "An email address is already registered."
 
+class UsernameAlreadyExists(AuthError):
+  """Raised when trying to register with a username that already exists."""
+
+  status_code = 409
+  detail = "A user with that username already exists."
+
+class PhoneAlreadyExists(AuthError):
+  """Raised when trying to register with a phone number that already exists."""
+
+  status_code = 409
+  detail = "A user with that phone number already exists."
+
 
 class WeakPassword(AuthError):
   """Raised when password does not staisfy the configured password policy."""
@@ -58,6 +70,12 @@ class InvalidCredentials(AuthError):
 
   status_code = 401
   detail = "Invalid credentials."
+
+class AccountLocked(AuthError):
+  """Raised when too many failed login attempts trigger the account lockout policy."""
+
+  status_code = 403
+  detail = "Account is temporarily locked due to too many failed login attempts. Please try again later."
 
 
 class EmailNotVerified(AuthError):
@@ -155,6 +173,15 @@ class ForbiddenError(AuthError):
  
     status_code = 403
     detail = "You do not have permission to perform this action"
+
+
+# ── MFA ───────────────────────────────────────────────────────────
+class MFANotEnabled(AuthError):
+    status_code = 400; detail = "MFA is not enabled on this account"
+class MFAAlreadyEnabled(AuthError):
+    status_code = 409; detail = "MFA is already enabled on this account"
+class InvalidBackupCode(AuthError):
+    status_code = 401; detail = "Invalid or already used backup code"
  
  
 # ── OAuth ─────────────────────────────────────────────────────────────────────

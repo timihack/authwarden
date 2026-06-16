@@ -32,7 +32,6 @@ def _uuid() -> str: return str(uuid.uuid4())
 
 class UserBase(BaseModel):
     """Shared fields across user request/response schemas."""
-
     email: EmailStr
     username: str | None = None
     full_name: str | None = None
@@ -40,8 +39,8 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     """Schema for the POST /auth/register request body."""
-
     password: str
+    phone_number: str | None = None
 
 
 class UserRead(UserBase):
@@ -64,7 +63,6 @@ class UserRead(UserBase):
     mfa_enabled: bool
     created_at: datetime
     updated_at: datetime
-
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -104,6 +102,7 @@ class UserInDB(UserBase):
     # OTP verification (SMS or email)
     verification_otp_hash: str | None = None               # active OTP secret (base32)
     verification_otp_expires_at: datetime | None = None
+    verification_otp_attempts: int = 0
 
     # Password reset — link-based
     last_reset_request_at: datetime | None = None
@@ -113,6 +112,11 @@ class UserInDB(UserBase):
     # Password reset — OTP-based
     reset_otp_hash: str | None = None
     reset_otp_expires_at: datetime | None = None
+    reset_otp_attempts: int = 0
+
+    # Brute force protection
+    failed_login_attempts: int = 0
+    locked_until: datetime | None = None
  
     created_at: datetime = Field(default_factory=_now)
     updated_at: datetime = Field(default_factory=_now)

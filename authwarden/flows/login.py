@@ -9,7 +9,7 @@ from authwarden.authentication.password import PasswordHandler
 from authwarden.core.config import WardenConfig
 from authwarden.exceptions import (
     AccountInactive, EmailNotVerified, InvalidCredentials,
-    InvalidMFACode, MFARequired,
+    InvalidMFACode, MFARequired, AccountLocked,
 )
 from authwarden.models.token import TokenPair
 from authwarden.models.user import UserInDB, UserRead
@@ -85,9 +85,19 @@ async def login_flow(
     if user is None or not user.hashed_password:
       password_handler.verify_password(password, _DUMMY_HASH)
       raise InvalidCredentials()
+
+    # Check lockout BEFORE password verification
+    if user.locked_until and utcnow() < user.locked_until:
+        raise AccountLocked()
     
     ok, new_hash = password_handler.verify_and_update(password, user.hashed_password)
     if not ok:
+      if config.max_failed_attempts > 0:
+        user.failed_login_attempts += 1
+        if user.failed_login_attempts >= config.max_failed_attempts:
+          user.locked_until = utcnow() + timedelta(seconds=config.login_lockout_duration)
+        user.updated_at = utcnow()
+        await store.update(user)
       raise InvalidCredentials()
     
     if not user.is_active:
@@ -101,12 +111,15 @@ async def login_flow(
         raise MFARequired()
       if not pyotp.TOTP(user.mfa_secret).verify(totp_code):
         raise InvalidMFACode()
-      
-    # Silent rehash
+
+    # Success- reset brute-force counters + silent rehash
+    user.failed_login_attempts = 0
+    user.locked_until = None
     if new_hash:
       user.hashed_password = new_hash
-      user.updated_at = utcnow()
-      await store.update(user)
+    user.updated_at = utcnow()
+    await store.update(user)
+
 
     pair = jwt_handler.create_token_pair(user.id, roles=user.roles, scopes=user.scopes)
 

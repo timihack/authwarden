@@ -41,7 +41,22 @@ async def reset_password_otp_flow(
     if not user.reset_otp_expires_at or utcnow() > user.reset_otp_expires_at:
         raise TokenExpired()
 
+    # Attempt limit
+    if config.max_otp_attempts > 0 and user.reset_otp_attempts >= config.max_otp_attempts:
+        user.reset_otp_hash = None
+        user.reset_otp_expires_at = None
+        user.reset_otp_attempts = 0
+        user.updated_at = utcnow()
+        await store.update(user)
+        raise TokenExpired("Too many attempts — please request a new reset code.")
+
+        
+
     if not user.reset_otp_hash or not verify_token_hash(otp, user.reset_otp_hash):
+        if config.max_otp_attempts > 0:
+            user.reset_otp_attempts += 1
+            user.updated_at = utcnow()
+            await store.update(user)
         raise InvalidToken()
 
     password_handler.check_policy(new_password)
@@ -52,6 +67,7 @@ async def reset_password_otp_flow(
     user.hashed_password = password_handler.hash_password(new_password)
     user.reset_otp_hash = None
     user.reset_otp_expires_at = None
+    user.reset_otp_attempts = 0
     user.updated_at = utcnow()
     await store.update(user)
     await notification_service.send_password_changed(user)

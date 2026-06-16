@@ -74,6 +74,11 @@ class WardenConfig(BaseSettings):
   require_password_digit: bool = False
   require_password_special: bool = False
 
+  # ---- brute-force protection ------------------------------------------------------
+  max_failed_attempts: int = 5  # 0 = disable
+  login_lockout_duration: int = 900   # seconds — 15 minutes
+  max_otp_attempts: int = 5       # 0 = disable
+
   # ── Email ─────────────────────────────────────────────────────────────────
   email_backend: Literal["smtp", "console"] = "console"
   smtp_host: str = "localhost"
