@@ -51,13 +51,33 @@ async def verify_otp_flow(
           or (utcnow() > user.verification_otp_expires_at):
         raise TokenExpired()
 
+    # Attempt limit check
+    if config.max_otp_attempts > 0 and user.verification_otp_attempts >= config.max_otp_attempts:
+        # Invalidate OTP - force resend
+        user.verification_otp_hash = None
+        user.verification_otp_expires_at = None
+        user.verification_otp_attempts = 0
+        user.updated_at = utcnow()
+        await store.update(user)
+        raise TokenExpired("Too many attempts - please request a new OTP.")
+    
     if not user.verification_otp_hash or not verify_token_hash(otp, user.verification_otp_hash):
+        if config.max_otp_attempts > 0:
+            user.verification_otp_attempts += 1
+            # Invalidate immediately when limit is reached
+            if user.verification_otp_attempts >= config.max_otp_attempts:
+                user.verification_otp_hash = None
+                user.verification_otp_expires_at = None
+                user.verification_otp_attempts = 0
+            user.updated_at = utcnow()
+            await store.update(user)
         raise InvalidToken()  
     
     user.is_verified = True
     user.is_active = True
     user.verification_otp_hash = None
     user.verification_otp_expires_at = None
+    user.verification_otp_attempts = 0
     user.updated_at = utcnow()
     user = await store.update(user)
 
