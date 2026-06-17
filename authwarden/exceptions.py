@@ -236,3 +236,6 @@ class LastLoginMethod(AuthError):
  
     status_code = 400
     detail = "Cannot remove the last login method — add another before disconnecting"
+
+class OAuthAccountNotFound(AuthError):
+    status_code = 404; detail = "No linked account found for this provider"
