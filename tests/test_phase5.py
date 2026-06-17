@@ -29,6 +29,7 @@ from authwarden.flows.set_password import set_password_flow
 from authwarden.models.user import UserInDB
 from authwarden.notifications.service import NotificationService
 from authwarden.storage.memory import MemoryUserStore
+from urllib.parse import urlparse
 
 
 class MockNotificationService:
@@ -186,7 +187,7 @@ class TestProviderAuthorizationURLs:
         cfg = OAuthProviderConfig(client_id="cid", client_secret="sec", redirect_uri="https://app.com/cb")
         provider = GoogleOAuthProvider(cfg)
         url = provider.build_authorization_url("mystate", "mychallenge")
-        assert "accounts.google.com" in url
+        assert urlparse(url).hostname == "accounts.google.com"
         assert "state=mystate" in url
         assert "code_challenge=mychallenge" in url
         assert "code_challenge_method=S256" in url
@@ -195,7 +196,7 @@ class TestProviderAuthorizationURLs:
         cfg = OAuthProviderConfig(client_id="cid", client_secret="sec", redirect_uri="https://app.com/cb")
         provider = GitHubOAuthProvider(cfg)
         url = provider.build_authorization_url("s", "c")
-        assert "github.com/login/oauth/authorize" in url
+        assert urlparse(url).hostname == "github.com"
 
     def test_custom_scopes_override_defaults(self):
         cfg = OAuthProviderConfig(client_id="cid", client_secret="sec", redirect_uri="https://app.com/cb", scopes=["custom_scope"])
@@ -232,7 +233,7 @@ class TestOAuthAuthorizeFlow:
     @pytest.mark.asyncio
     async def test_returns_authorization_url(self, config, providers, state_store):
         url = await oauth_authorize_flow("google", config=config, providers=providers, state_store=state_store)
-        assert "accounts.google.com" in url
+        assert urlparse(url).hostname == "accounts.google.com"
 
     @pytest.mark.asyncio
     async def test_persists_state(self, config, providers, state_store):
