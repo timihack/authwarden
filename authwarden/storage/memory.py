@@ -33,7 +33,7 @@ class MemoryUserStore:
 
 
   # ---- Helpers --------------------------------------------------------------------
-  def _remove_indexex(self, user: UserInDB) -> None:
+  def _remove_indexes(self, user: UserInDB) -> None:
       self._email_index.pop(user.email.lower(), None)
       if user.username:
           self._username_index.pop(user.username.lower(), None)
@@ -82,52 +82,43 @@ class MemoryUserStore:
       return user
 
   async def update(self, user: UserInDB) -> UserInDB:
-      """Overwrite the stored user record and refresh the email index.
+    """Overwrite the stored user record and refresh the email index.
 
-      Handles email changes by cleaning up the old index entry.
-      Compares against the previously stored copy, not the incoming object,
-      since the caller may have mutated the same instance in place.
+    Handles email changes by cleaning up the old index entry.
+    Compares against the previously stored copy, not the incoming object,
+    since the caller may have mutated the same instance in place.
 
-      Args:
-          user: UserInDB with updated fields.
+    Args:
+        user: UserInDB with updated fields.
 
-      Returns:
-          The updated UserInDB instance.
-      """
-      # Find any old/stale entries pointing to this user_id and remove them
-      stale_emails = [e for e, uid in self._email_index.items() if uid == user.id and e != user.email.lower()]
-      for e in stale_emails:
-          del self._email_index[e]
-      stale_usernames = [u for u, uid in self._username_index.items() if uid == user.id and u != (user.username or "").lower()]
-      for u in stale_usernames:
-          del self._username_index[u]
-      stale_phones = [p for p, uid in self._phone_index.items() if uid == user.id and p != user.phone_number]
-      for p in stale_phones:
+    Returns:
+        The updated UserInDB instance.
+    """
+    # Scan index for any stale entries pointing to this user_id and clean up
+    stale_emails = [e for e, uid in self._email_index.items() if uid == user.id and e != user.email.lower()]
+    for e in stale_emails:
+        del self._email_index[e]
+    stale_usernames = [u for u, uid in self._username_index.items() if uid == user.id and u != (user.username or "").lower()]
+    for u in stale_usernames:
+        del self._username_index[u]
+    stale_phones = [p for p, uid in self._phone_index.items() if uid == user.id and p != user.phone_number]
+    for p in stale_phones:
         del self._phone_index[p]
 
-      self._users[user.id] = user
-      self._add_indexes(user)
-      return user
+    self._users[user.id] = user
+    self._add_indexes(user)
+    return user
 
   async def delete(self, user_id: str) -> None:
-      """Remove a user and their email index entry.
+    """Remove a user and their email index entry.
 
-      Args:
-          user_id: UUID of the user to remove.
-      """
-      user = self._users.pop(user_id, None)
-      if user:
-          self._email_index.pop(user.email.lower(), None)
+    Args:
+        user_id: UUID of the user to remove.
+    """
+    user = self._users.pop(user_id, None)
+    if user:
+        self._remove_indexes(user)
 
-  async def delete(self, user: UserInDB) -> None:
-      """Remove a user and their email index entry.
-
-      Args:
-          user: UserInDB instance to remove.
-      """
-      self._users.pop(user.id, None)
-      if user:
-          self._remove_indexes(user)
 
   # ── OAuth accounts ────────────────────────────────────────────────────────
 
