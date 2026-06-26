@@ -158,9 +158,9 @@ def build_auth_router(
       data.token, data.new_password, store=store, config=config,
       password_handler=password_handler, notification_service=notification_service,
     )
-    return MessageResponse(details="Password reset successfully.")
+    return MessageResponse(detail="Password reset successfully.")
 
-  @router.post("reset-password-otp", response_model=MessageResponse)
+  @router.post("/reset-password-otp", response_model=MessageResponse)
   @handle_auth_errors
   async def reset_password_otp(data: ResetPasswordOtpRequest) -> MessageResponse:
     """Reset password using OTP code"""
@@ -194,6 +194,8 @@ def build_auth_router(
       user.id, data.new_password, store=store, config=config,
       password_handler=password_handler, notification_service=notification_service
     )
+    
+    return MessageResponse(detail="Password set successfully.")
 
   return router
   
