@@ -6,6 +6,9 @@ Exhaustive flow-level edge cases are already covered by tests in
 Phases 1-5; full end-to-end coverage is Phase 7's job.
 """
 from __future__ import annotations
+
+from urllib.parse import urlparse
+
 import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
@@ -290,7 +293,9 @@ class TestOAuthEndpoints:
         client = TestClient(make_app(warden_oauth))
         r = client.get("/auth/oauth/google/authorize")
         assert r.status_code == 200
-        assert "accounts.google.com" in r.json()["authorization_url"]
+        parsed = urlparse(r.json()["authorization_url"])
+        assert parsed.scheme == "https"
+        assert parsed.hostname == "accounts.google.com"
 
     def test_authorize_unknown_provider_404(self, warden_oauth):
         client = TestClient(make_app(warden_oauth))
