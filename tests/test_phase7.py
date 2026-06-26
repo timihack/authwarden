@@ -18,6 +18,7 @@ from authwarden.core.config import OAuthProviderConfig
 from authwarden.models.user import UserInDB
 from authwarden.utils import generate_otp, hash_token, utcnow
 from datetime import timedelta
+from urllib.parse import urlparse
 
 
 def make_warden(**kwargs) -> AuthWarden:
@@ -690,8 +691,8 @@ class TestOAuthEndpoints:
         async with client_for(warden) as c:
             r = await c.get("/auth/oauth/google/authorize")
             assert r.status_code == 200
-            assert "accounts.google.com" in r.json()["authorization_url"]
-
+            parsed = urlparse(r.json()["authorization_url"])
+            assert parsed.hostname == "accounts.google.com"
     @pytest.mark.asyncio
     async def test_authorize_unknown_provider_404(self):
         warden = make_oauth_warden()
