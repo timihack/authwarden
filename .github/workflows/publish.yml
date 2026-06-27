@@ -8,6 +8,12 @@ on:
   release:
     types: [published]
 
+# Workflow-level default — applies to any job that doesn't set its own
+# permissions block (the build job below). The publish job sets its own
+# more specific permissions and is unaffected by this default.
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build distribution
