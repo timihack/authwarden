@@ -4,8 +4,29 @@ build-backend = "hatchling.build"
 
 [project]
 name = "authwarden"
-version = "0.1.0"
-requires-python = ">=3.11"
+version = "0.7.0"
+description = "A production-grade, pluggable authentication library for FastAPI — JWT, OAuth2 (8 providers), MFA, RBAC, and full flow flexibility (email/SMS, link/OTP, multi-identifier login)."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "John Adeniran (timihack)" }
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: FastAPI",
+    "Topic :: Internet :: WWW/HTTP :: Session",
+    "Topic :: Security :: Cryptography",
+    "Typing :: Typed",
+]
+keywords = ["fastapi", "authentication", "oauth2", "jwt", "mfa", "rbac", "security"]
+ 
 dependencies = [
     "fastapi>=0.110.0",
     "pyjwt>=2.8.0",
@@ -22,8 +43,30 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# AWS SNS SMS backend
+sns = ["boto3>=1.34.0"]
+# Redis-backed session and token blacklist backends
 redis = ["redis>=5.0.0"]
-dev   = ["pytest", "pytest-asyncio", "httpx", "hatch", "faker", "respx"]
-
+# Everything optional, for convenience
+all = ["boto3>=1.34.0", "redis>=5.0.0"]
+ 
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "respx>=0.21.0",
+    "boto3>=1.34.0",
+    "redis>=5.0.0",
+]
+ 
+[project.urls]
+Homepage = "https://github.com/timihack/authwarden"
+Repository = "https://github.com/timihack/authwarden"
+Issues = "https://github.com/timihack/authwarden/issues"
+Changelog = "https://github.com/timihack/authwarden/releases"
+ 
 [tool.hatch.build.targets.wheel]
 packages = ["authwarden"]
+ 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
