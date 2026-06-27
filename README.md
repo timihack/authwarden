@@ -1,26 +1,63 @@
+<div align="center">
+
 # authwarden
 
-Production-grade FastAPI authentication and authorization library. Wraps proven cryptographic libraries — never rolls its own.
+**A production-grade, pluggable authentication library for FastAPI.**
 
-[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/fastapi-0.110+-green.svg)](https://fastapi.tiangolo.com)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![PyPI version](https://img.shields.io/pypi/v/authwarden.svg)](https://pypi.org/project/authwarden/)
+[![Python versions](https://img.shields.io/pypi/pyversions/authwarden.svg)](https://pypi.org/project/authwarden/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/timihack/authwarden/blob/main/LICENSE)
+[![Tests](https://img.shields.io/badge/tests-390%20passing-brightgreen.svg)](https://github.com/timihack/authwarden)
+
+JWT auth, OAuth2 across 8 providers, MFA, RBAC, and full flow flexibility — all behind a clean FastAPI router you can drop into any app.
+
+[Quickstart](#quickstart) · [Features](#features) · [Documentation](https://timihack.github.io/authwarden) · [Roadmap](https://github.com/timihack/authwarden/discussions)
+
+</div>
+
+---
+
+## Why authwarden
+
+Most FastAPI auth tutorials show you a toy JWT example and stop there. authwarden is built for the parts that actually matter in production:
+
+- **Everything is a `Protocol`.** Bring your own database (the `AbstractUserStore` protocol works out of the box with SQLAlchemy, MongoDB/Beanie, SQLModel, or Tortoise — no built-in ORM lock-in), your own email/SMS provider, your own templates.
+- **Flexibility where it counts.** Verify by link or OTP. Notify by email, SMS, or both. Let users log in with email, username, or phone — your call, configured once.
+- **Security defaults that are actually defaults.** Brute-force lockout, OTP attempt limiting, encrypted OAuth tokens at rest, PKCE on every social login flow — none of it bolted on, none of it optional homework.
+- **A real test suite.** 390 tests across unit, flow, and full HTTP end-to-end coverage.
 
 ---
 
 ## Features
 
-- **JWT authentication** — access + refresh tokens, rotation, per-token revocation via `jti`
-- **Password hashing** — argon2 (default) or bcrypt via `pwdlib`, auto-rehash on login
-- **Full auth flows** — register, verify email, login, logout, forgot/reset/change password
-- **MFA** — TOTP setup/confirm/disable (pyotp), hashed backup codes
-- **OAuth 2.0 / Social login** — Google, GitHub, Facebook, Apple, Twitter/X, Microsoft, LinkedIn, Discord
-- **RBAC** — role hierarchy, scope guards, `Depends()` factories
-- **Session management** — pluggable backends (in-memory, Redis)
-- **Email** — SMTP + console backends, HTML + plain-text templates for every flow
-- **Plug-and-play router** — mount all endpoints with one line
-- **Storage-agnostic** — implement `AbstractUserStore` for any ORM or database
+**Authentication**
+- Register, login, logout, refresh (with rotation)
+- Email verification — link or OTP, your choice
+- Password reset — link or OTP, your choice
+- Change password, and `set-password` for OAuth-only accounts
+- Login via email, username, or phone — configurable priority order
+- Email *and* SMS notification channels, independently configurable
+
+**MFA**
+- TOTP setup, confirm, disable
+- 8 single-use, argon2-hashed backup codes per user
+
+**Permissions**
+- Role hierarchy (`guest` → `user` → `moderator` → `admin` → `superadmin`)
+- Arbitrary scope strings (`"user:read"`, `"admin:delete"`, anything you want)
+
+**OAuth 2.0 / Social Login**
+- Google, GitHub, Facebook, Microsoft, LinkedIn, Discord, Twitter/X, Apple
+- PKCE (S256) on every provider, no exceptions
+- Automatic account linking (existing link → email match → auto-register)
+- Apple's quirks handled for you: ES256 client-secret generation, JWKS-cached `id_token` verification, first-login-only name capture
+- OAuth tokens encrypted at rest
+
+**Security**
+- Login lockout after configurable failed attempts
+- OTP attempt limiting with auto-invalidation
+- Anti-enumeration on password reset and resend-verification
+- Single-use, hashed reset/verification tokens — raw tokens never touch storage
 
 ---
 
@@ -30,10 +67,12 @@ Production-grade FastAPI authentication and authorization library. Wraps proven 
 pip install authwarden
 ```
 
-With Redis session support:
+Optional extras:
 
 ```bash
-pip install authwarden[redis]
+pip install "authwarden[redis]"   # Redis-backed sessions and token blacklist
+pip install "authwarden[sns]"     # AWS SNS SMS backend
+pip install "authwarden[all]"     # everything
 ```
 
 ---
@@ -42,339 +81,103 @@ pip install authwarden[redis]
 
 ```python
 from fastapi import FastAPI, Depends
-from authwarden import AuthWarden, WardenConfig
-from authwarden.storage.memory import MemoryUserStore
+from authwarden import AuthWarden, WardenConfig, MemoryUserStore
+
+config = WardenConfig(
+    secret_key="change-me-to-a-real-32-byte-secret",
+    require_email_verification=False,  # skip for this example
+)
+store = MemoryUserStore()  # swap for your own AbstractUserStore in production
+warden = AuthWarden(config=config, user_store=store)
 
 app = FastAPI()
-
-warden = AuthWarden(
-    config=WardenConfig(secret_key="your-secret-key"),
-    user_store=MemoryUserStore(),
-)
-
-# Mount all auth endpoints under /auth
 app.include_router(warden.router, prefix="/auth", tags=["auth"])
 
-# Protect your own routes
+
 @app.get("/profile")
 async def profile(user=Depends(warden.current_user)):
-    return user
+    return {"id": user.id, "email": user.email}
+
 
 @app.delete("/admin/users/{user_id}")
-async def delete_user(user=Depends(warden.require_roles("admin"))):
+async def delete_user(user_id: str, _=Depends(warden.require_roles("admin"))):
     ...
 ```
 
-This mounts:
-
-```
-POST /auth/register
-POST /auth/verify-email
-POST /auth/resend-verification
-POST /auth/login
-POST /auth/logout
-POST /auth/refresh
-POST /auth/forgot-password
-POST /auth/reset-password
-POST /auth/change-password
-POST /auth/mfa/setup
-POST /auth/mfa/confirm
-POST /auth/mfa/disable
-GET  /auth/oauth/{provider}/authorize
-POST /auth/oauth/{provider}/callback
-POST /auth/oauth/{provider}/connect
-DEL  /auth/oauth/{provider}/disconnect
-GET  /auth/oauth/accounts
-POST /auth/set-password
-```
-
----
-
-## Configuration
-
-```python
-from authwarden import WardenConfig
-
-config = WardenConfig(
-    # Required
-    secret_key="a-long-random-secret",
-
-    # JWT
-    algorithm="HS256",
-    access_token_ttl=900,        # 15 minutes
-    refresh_token_ttl=604800,    # 7 days
-    enable_refresh_rotation=True,
-
-    # Passwords
-    password_hasher="argon2",    # or "bcrypt"
-    min_password_length=8,
-    require_password_uppercase=False,
-    require_password_digit=False,
-    require_password_special=False,
-
-    # Email
-    email_backend="smtp",        # or "console" for dev
-    smtp_host="smtp.example.com",
-    smtp_port=587,
-    smtp_username="user@example.com",
-    smtp_password="...",
-    emails_from_address="noreply@example.com",
-
-    # Registration
-    require_email_verification=True,
-    allow_registration=True,
-
-    # MFA
-    enable_mfa=True,
-    mfa_issuer_name="MyApp",
-
-    # Session (optional)
-    session_backend="redis",
-    redis_url="redis://localhost:6379",
-
-    # Frontend URLs (for email links)
-    frontend_base_url="https://myapp.com",
-    verify_email_path="/auth/verify-email",
-    reset_password_path="/auth/reset-password",
-)
-```
-
-All settings can also be loaded from environment variables (via `pydantic-settings`):
-
-```env
-SECRET_KEY=your-secret-key
-EMAIL_BACKEND=smtp
-SMTP_HOST=smtp.example.com
-```
-
----
-
-## Custom User Store
-
-Implement `AbstractUserStore` to connect any database:
-
-```python
-from authwarden.storage.base import AbstractUserStore
-from authwarden.models.user import UserInDB
-
-class SQLAlchemyUserStore(AbstractUserStore):
-    async def get_by_id(self, user_id: str) -> UserInDB | None:
-        ...
-
-    async def get_by_email(self, email: str) -> UserInDB | None:
-        ...
-
-    async def create(self, user: UserInDB) -> UserInDB:
-        ...
-
-    async def update(self, user: UserInDB) -> UserInDB:
-        ...
-
-    async def delete(self, user_id: str) -> None:
-        ...
-```
-
----
-
-## OAuth / Social Login
-
-```python
-from authwarden.authentication.oauth import OAuthProviderConfig
-
-warden = AuthWarden(
-    config=WardenConfig(
-        secret_key="...",
-        oauth_providers={
-            "google": OAuthProviderConfig(
-                client_id="...",
-                client_secret="...",
-                redirect_uri="https://myapp.com/auth/oauth/google/callback",
-            ),
-            "github": OAuthProviderConfig(
-                client_id="...",
-                client_secret="...",
-                redirect_uri="https://myapp.com/auth/oauth/github/callback",
-            ),
-        }
-    ),
-    user_store=MyUserStore(),
-)
-```
-
-**Apple Sign In** requires additional fields:
-
-```python
-config = WardenConfig(
-    ...
-    apple_team_id="TEAM123",
-    apple_key_id="KEY123",
-    apple_private_key_pem="-----BEGIN PRIVATE KEY-----\n...",
-    oauth_providers={
-        "apple": OAuthProviderConfig(
-            client_id="com.myapp.service",
-            client_secret="",   # auto-generated from private key
-            redirect_uri="https://myapp.com/auth/oauth/apple/callback",
-        )
-    }
-)
-```
-
----
-
-## MFA (TOTP)
-
-```python
-# Enable globally
-config = WardenConfig(secret_key="...", enable_mfa=True)
-
-# Endpoints are automatically mounted:
-# POST /auth/mfa/setup    → returns { secret, qr_uri, backup_codes }
-# POST /auth/mfa/confirm  → activates MFA after verifying first code
-# POST /auth/mfa/disable  → requires password + TOTP or backup code
-```
-
-Login with MFA:
-
-```python
-POST /auth/login
-{
-  "email": "user@example.com",
-  "password": "hunter2",
-  "totp_code": "123456"
-}
-```
-
----
-
-## RBAC
-
-```python
-from fastapi import Depends
-
-# Require a single role
-@app.get("/admin")
-async def admin(user=Depends(warden.require_roles("admin"))):
-    ...
-
-# Require any of multiple roles
-@app.get("/reports")
-async def reports(user=Depends(warden.require_roles("admin", "analyst"))):
-    ...
-
-# Require a scope
-@app.post("/items")
-async def create_item(user=Depends(warden.require_scopes("items:write"))):
-    ...
-```
-
----
-
-## Email Templates
-
-Override any template by subclassing `EmailTemplates`:
-
-```python
-from authwarden.email.templates import EmailTemplates
-
-class MyTemplates(EmailTemplates):
-    def verify_email(self, user, link: str) -> tuple[str, str, str]:
-        # returns (subject, plain_text, html)
-        return (
-            "Verify your account",
-            f"Click here: {link}",
-            f"<a href='{link}'>Verify your account</a>",
-        )
-
-warden = AuthWarden(config=..., user_store=..., email_templates=MyTemplates())
-```
-
----
-
-## Auth Flows Reference
-
-| Flow | Endpoint | Auth required |
-|---|---|---|
-| Register | `POST /auth/register` | No |
-| Verify email | `POST /auth/verify-email` | No |
-| Resend verification | `POST /auth/resend-verification` | No |
-| Login | `POST /auth/login` | No |
-| Logout | `POST /auth/logout` | Bearer token |
-| Refresh token | `POST /auth/refresh` | No |
-| Forgot password | `POST /auth/forgot-password` | No |
-| Reset password | `POST /auth/reset-password` | No |
-| Change password | `POST /auth/change-password` | Bearer token |
-| MFA setup | `POST /auth/mfa/setup` | Bearer token |
-| MFA confirm | `POST /auth/mfa/confirm` | Bearer token |
-| MFA disable | `POST /auth/mfa/disable` | Bearer token |
-| OAuth authorize | `GET /auth/oauth/{provider}/authorize` | No |
-| OAuth callback | `POST /auth/oauth/{provider}/callback` | No |
-| Connect provider | `POST /auth/oauth/{provider}/connect` | Bearer token |
-| Disconnect provider | `DELETE /auth/oauth/{provider}/disconnect` | Bearer token |
-| List linked accounts | `GET /auth/oauth/accounts` | Bearer token |
-| Set password (OAuth) | `POST /auth/set-password` | Bearer token |
-
----
-
-## Security Notes
-
-- Passwords hashed with **argon2** by default (bcrypt available)
-- JWT tokens include a `jti` (UUID) claim — enables per-token revocation
-- Password reset and email verification tokens stored as **hashes only**
-- Forgot password and resend verification always return `200` (anti-enumeration)
-- Constant-time comparison used for all token lookups (`hmac.compare_digest`)
-- PKCE (S256) used for all OAuth flows
-- Refresh token rotation enabled by default — old `jti` blacklisted on use
-- MFA backup codes stored as **argon2 hashes**, single-use
-- OAuth provider tokens encrypted at rest (Fernet)
-
----
-
-## Development
+Run it:
 
 ```bash
-git clone https://github.com/yourusername/authwarden.git
+uvicorn main:app --reload
+```
+
+Open `http://127.0.0.1:8000/docs` — you now have working `/auth/register`, `/auth/login`, `/auth/refresh`, MFA, and OAuth endpoints, plus an interactive **Authorize** button for testing protected routes.
+
+---
+
+## Core concepts
+
+### `WardenConfig`
+Every behavioral switch lives here — verification method (link/OTP), notification channels, login identifier order, lockout thresholds, OAuth provider credentials, and more. See the [full configuration reference](https://timihack.github.io/authwarden) for every field.
+
+### `AbstractUserStore`
+A `Protocol`, not a base class — any object with the right async methods satisfies it. Works with any database:
+
+```python
+class SQLAlchemyUserStore:
+    def __init__(self, session_factory):
+        self.session_factory = session_factory
+
+    async def get_by_email(self, email: str):
+        async with self.session_factory() as session:
+            result = await session.execute(select(UserModel).where(UserModel.email == email))
+            row = result.scalar_one_or_none()
+            return UserInDB.model_validate(row) if row else None
+    # ... remaining protocol methods
+```
+
+More examples (MongoDB/Beanie, SQLModel, Tortoise) in the [full docs](https://timihack.github.io/authwarden).
+
+### Extending the user model
+`UserInDB` supports arbitrary extra data without a migration, or full subclassing for typed fields:
+
+```python
+class MyUser(UserInDB):
+    company_id: str | None = None
+    subscription_tier: str = "free"
+```
+
+### The `AuthWarden` facade
+- `warden.router` — mount it, get 20 endpoints
+- `warden.current_user` — `Depends()`-compatible, fetches fresh from your store, checks `is_active` on every request
+- `warden.require_roles(*roles)` / `warden.require_scopes(*scopes)` — guard any route you write yourself
+
+---
+
+## Testing
+
+```bash
+git clone https://github.com/timihack/authwarden
 cd authwarden
-python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 pytest
 ```
 
----
-
-## Running Tests
-
-```bash
-# All tests
-pytest
-
-# With coverage
-pytest --cov=authwarden --cov-report=term-missing
-
-# Specific suite
-pytest tests/test_oauth.py -v
-```
+390 tests across foundation, auth flows, MFA/permissions, OAuth, router assembly, and full HTTP end-to-end coverage.
 
 ---
 
-## Project Structure
+## Documentation
 
-```
-authwarden/
-├── core/              # WardenConfig, AuthWarden facade, request context
-├── authentication/    # JWT, password hashing, OAuth provider base
-├── flows/             # One module per auth flow
-├── mfa/               # TOTP + backup codes
-├── permissions/       # Roles + scope guards
-├── session/           # Memory + Redis session backends
-├── dependencies/      # FastAPI Depends() factories
-├── routers/           # Plug-and-play FastAPI routers
-├── email/             # SMTP, console backends + templates
-├── models/            # Pydantic v2 models
-└── storage/           # AbstractUserStore + MemoryUserStore
-```
+This README gets you to a working quickstart. For the complete reference — every config field, every flow with code samples, every customization pattern — see the [full documentation site](https://timihack.github.io/authwarden).
 
----
+## Roadmap
+
+Tracked in the [project discussion](https://github.com/timihack/authwarden/discussions) — includes planned post-v1.0 work like transport/strategy pluggability, Enterprise OIDC, SAML 2.0, and built-in ORM backend implementations.
+
+## Contributing
+
+Issues and PRs welcome. This project is in active development — check the roadmap discussion before starting major work.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT © [timihack](https://github.com/timihack)
