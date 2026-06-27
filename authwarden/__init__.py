@@ -21,7 +21,7 @@ from authwarden.models.user import (
 from authwarden.storage.base import AbstractUserStore
 from authwarden.storage.memory import MemoryUserStore
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 
 __all__ = [
     "AuthWarden",
