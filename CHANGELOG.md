@@ -7,6 +7,23 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06
+First stable release.
+
+### Why 1.0.0 now
+`0.7.0`/`0.7.1` proved the package installs and runs correctly in a real
+environment outside development. Since then: CI now runs the full suite
+on every PR, a security disclosure process is in place, and the README
+accurately documents what the library does end-to-end. This release marks
+the point where the public API is considered stable — breaking changes
+from here follow semver.
+
+### Notes
+- No functional changes from `0.7.1` — this release exists to mark API
+  stability, not to ship new behavior.
+- See the "Phase development history" section below for the full feature
+  set this release comprises.
+
 ## [0.7.1] - 2026-06
 ### Fixed
 - Added missing `httpx` dependency. `0.7.0`'s published package metadata was
@@ -84,6 +101,7 @@ milestones rather than published package versions. Tagged on GitHub as
 - Exception hierarchy, Pydantic v2 models, `WardenConfig`,
   `AbstractUserStore` protocol, in-memory reference implementation.
 
-[Unreleased]: https://github.com/timihack/authwarden/compare/v0.7.1...HEAD
+[Unreleased]: https://github.com/timihack/authwarden/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/timihack/authwarden/compare/v0.7.1...v1.0.0
 [0.7.1]: https://github.com/timihack/authwarden/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/timihack/authwarden/releases/tag/v0.7.0

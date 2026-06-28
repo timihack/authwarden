@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "authwarden"
-version = "0.7.1"
+version = "1.0.0"
 description = "A production-grade, pluggable authentication library for FastAPI — JWT, OAuth2 (8 providers), MFA, RBAC, and full flow flexibility (email/SMS, link/OTP, multi-identifier login)."
 readme = "README.md"
 license = { text = "MIT" }
