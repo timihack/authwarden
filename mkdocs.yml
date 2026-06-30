@@ -1,0 +1,65 @@
+site_name: authwarden
+site_description: A production-grade, pluggable authentication library for FastAPI.
+site_url: https://timihack.github.io/authwarden
+repo_url: https://github.com/timihack/authwarden
+repo_name: timihack/authwarden
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: installation.md
+      - Quickstart: quickstart.md
+      - Configuration Reference: configuration.md
+  - Core Concepts:
+      - The AuthWarden Facade: concepts/facade.md
+      - User Store (Database): concepts/user-store.md
+      - User Model: concepts/user-model.md
+  - Authentication Flows:
+      - Registration: flows/registration.md
+      - Verification: flows/verification.md
+      - Login: flows/login.md
+      - Logout & Refresh: flows/logout-refresh.md
+      - Password Reset: flows/password-reset.md
+  - MFA: mfa.md
+  - Permissions (RBAC): permissions.md
+  - OAuth / Social Login:
+      - Overview & Providers: oauth/overview.md
+      - Apple Sign In: oauth/apple.md
+      - Account Linking: oauth/account-linking.md
+  - Notifications:
+      - Email Backends: notifications/email.md
+      - SMS Backends: notifications/sms.md
+  - Security: security.md
+  - API Reference: api-reference.md
+  - Customization Guide: customization.md
