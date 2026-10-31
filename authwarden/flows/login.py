@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import timedelta
 import pyotp
 
-from authwarden.authentication.jwt import JWTHandler
+from authwarden.authentication.strategy import TokenStrategy
 from authwarden.authentication.password import PasswordHandler
 from authwarden.core.config import WardenConfig
 from authwarden.exceptions import (
@@ -60,7 +60,7 @@ async def login_flow(
     store: AbstractUserStore,
     config: WardenConfig,
     password_handler: PasswordHandler,
-    jwt_handler: JWTHandler,
+    jwt_handler: TokenStrategy,
     totp_code: str | None = None,
     session_backend: AbstractSessionBackend | None = None,
     user_agent: str | None = None,
@@ -132,7 +132,7 @@ async def login_flow(
     await store.update(user)
 
 
-    pair = jwt_handler.create_token_pair(user.id, roles=user.roles, scopes=user.scopes)
+    pair = await jwt_handler.issue_token_pair(user.id, roles=user.roles, scopes=user.scopes)
 
     if session_backend is not None:
       await session_backend.create(SessionData(

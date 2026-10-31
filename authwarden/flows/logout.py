@@ -1,14 +1,14 @@
 """Logout flow."""
 from __future__ import annotations
 
-from authwarden.authentication.jwt import JWTHandler
+from authwarden.authentication.strategy import TokenStrategy
 from authwarden.session.base import AbstractSessionBackend
 
 
 async def logout_flow(
     access_token: str,
     *,
-    jwt_handler: JWTHandler,
+    jwt_handler: TokenStrategy,
     refresh_token: str | None = None,
     session_backend: AbstractSessionBackend | None = None,
     session_id: str | None = None,

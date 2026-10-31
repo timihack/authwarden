@@ -12,7 +12,7 @@ from typing import Callable
 from fastapi import APIRouter, Depends, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from authwarden.authentication.jwt import JWTHandler
+from authwarden.authentication.strategy import TokenStrategy
 from authwarden.authentication.password import PasswordHandler
 from authwarden.core.config import WardenConfig
 from authwarden.flows.change_password import change_password_flow
@@ -55,7 +55,7 @@ def build_auth_router(
   store: AbstractUserStore,
   config: WardenConfig,
   password_handler: PasswordHandler,
-  jwt_handler: JWTHandler,
+  jwt_handler: TokenStrategy,
   notification_service: AbstractNotificationService,
   session_backend: AbstractSessionBackend | None,
   get_current_user: Callable
@@ -198,4 +198,3 @@ def build_auth_router(
     return MessageResponse(detail="Password set successfully.")
 
   return router
-  

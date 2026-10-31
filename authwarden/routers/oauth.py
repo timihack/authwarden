@@ -13,7 +13,7 @@ from typing import Callable
 from fastapi import APIRouter, Depends, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from authwarden.authentication.jwt import JWTHandler
+from authwarden.authentication.strategy import TokenStrategy
 from authwarden.authentication.oauth import OAuthProviderBase
 from authwarden.authentication.oauth_state import AbstractOAuthStateStore
 from authwarden.core.config import WardenConfig
@@ -39,7 +39,7 @@ def build_oauth_router(
     *,
     store: AbstractUserStore,
     config: WardenConfig,
-    jwt_handler: JWTHandler,
+    jwt_handler: TokenStrategy,
     notification_service: AbstractNotificationService,
     providers: dict[str, OAuthProviderBase],
     state_store: AbstractOAuthStateStore,
@@ -126,4 +126,3 @@ def build_oauth_router(
      return Response(status_code=204)
   
   return router
- 

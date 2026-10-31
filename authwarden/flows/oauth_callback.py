@@ -5,7 +5,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from authwarden.authentication.encryption import encrypt_token
-from authwarden.authentication.jwt import JWTHandler
+from authwarden.authentication.strategy import TokenStrategy
 from authwarden.authentication.oauth import OAuthProviderBase, _token_expiry
 from authwarden.authentication.oauth_state import AbstractOAuthStateStore
 from authwarden.core.config import WardenConfig
@@ -34,7 +34,7 @@ async def oauth_callback_flow(
     *,
     store: AbstractUserStore,
     config: WardenConfig,
-    jwt_handler: JWTHandler,
+    jwt_handler: TokenStrategy,
     notification_service: AbstractNotificationService,
     providers: dict[str, OAuthProviderBase],
     state_store: AbstractOAuthStateStore,
@@ -152,5 +152,5 @@ async def oauth_callback_flow(
     if not user.is_active:
         raise AccountInactive()
 
-    pair = jwt_handler.create_token_pair(user.id, roles=user.roles, scopes=user.scopes)
+    pair = await jwt_handler.issue_token_pair(user.id, roles=user.roles, scopes=user.scopes)
     return OAuthCallbackResult(token_pair=pair, user=user.to_read(), is_new_user=is_new_user)

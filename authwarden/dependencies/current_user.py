@@ -21,7 +21,7 @@ from typing import Callable
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from authwarden.authentication.jwt import JWTHandler
+from authwarden.authentication.strategy import TokenStrategy
 from authwarden.exceptions import AccountInactive, AuthError, UserNotFound
 from authwarden.models.token import TokenPayload
 from authwarden.models.user import UserInDB
@@ -29,11 +29,11 @@ from authwarden.storage.base import AbstractUserStore
 
 _bearer_scheme = HTTPBearer(auto_error=True)
 
-def build_get_token_payload(jwt_handler: JWTHandler) -> Callable:
+def build_get_token_payload(jwt_handler: TokenStrategy) -> Callable:
   """Build a dependency that decodes and verifies the access token.
 
   Args:
-      jwt_handler: The AuthWarden instance's JWTHandler.
+      jwt_handler: The AuthWarden instance's TokenStrategy.
 
   Returns:
       An async dependency callable returning TokenPayload.
@@ -52,7 +52,7 @@ def build_get_token_payload(jwt_handler: JWTHandler) -> Callable:
 
 
 def build_get_current_user(
-    jwt_handler: JWTHandler, store: AbstractUserStore
+    jwt_handler: TokenStrategy, store: AbstractUserStore
 ) -> Callable:
   """Build a dependency that resolves the full authenticated user.
 
@@ -61,7 +61,7 @@ def build_get_current_user(
   the actual user object.
 
   Args:
-      jwt_handler: The AuthWarden instance's JWTHandler.
+      jwt_handler: The AuthWarden instance's TokenStrategy.
       store:       The configured user store.
 
   Returns:

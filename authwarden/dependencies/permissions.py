@@ -19,7 +19,7 @@ from typing import Callable
 
 from fastapi import Depends, HTTPException
 
-from authwarden.authentication.jwt import JWTHandler
+from authwarden.authentication.strategy import TokenStrategy
 from authwarden.dependencies.current_user import build_get_token_payload
 from authwarden.exceptions import ForbiddenError
 from authwarden.models.token import TokenPayload
@@ -27,11 +27,11 @@ from authwarden.permissions.policies import require_scopes as _require_scopes
 from authwarden.permissions.roles import require_roles as _require_roles
  
 
-def build_require_roles(jwt_handler: JWTHandler) -> Callable[..., Callable]:
+def build_require_roles(jwt_handler: TokenStrategy) -> Callable[..., Callable]:
   """Build a require_roles dependency FACTORY.
 
   Args:
-      jwt_handler: The AuthWarden instance's JWTHandler.
+      jwt_handler: The AuthWarden instance's TokenStrategy.
 
   Returns:
       A function ``require_roles(*roles, require_all=False)`` that
@@ -54,11 +54,11 @@ def build_require_roles(jwt_handler: JWTHandler) -> Callable[..., Callable]:
   return require_roles
 
 
-def build_require_scopes(jwt_handler: JWTHandler) -> Callable[..., Callable]:
+def build_require_scopes(jwt_handler: TokenStrategy) -> Callable[..., Callable]:
   """Build a require_scopes dependency FACTORY.
 
   Args:
-      jwt_handler: The AuthWarden instance's JWTHandler.
+      jwt_handler: The AuthWarden instance's TokenStrategy.
 
   Returns:
       A function ``require_scopes(*scopes, require_all=False)`` that
