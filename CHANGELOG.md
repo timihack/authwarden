@@ -7,6 +7,19 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-25
+### Added
+- Token strategies. The new `TokenStrategy` protocol lets you replace JWT as the token mechanism, through `AuthWarden(token_strategy=...)`. `RedisTokenStrategy` is built in: opaque random tokens stored in Redis, with instant revocation. Install with `pip install "authwarden[redis]"`.
+- `JWTHandler.issue_token_pair()`, the async form of `create_token_pair()`.
+- `warden.token_strategy`. `warden.jwt_handler` still works and is an alias for it.
+- CI now runs the suite against a Redis service too.
+
+### Fixed
+- Docs: the `RedisTokenBlacklist` example passed `redis_url=`, which the class does not accept. It takes a Redis client.
+
+### Documentation
+- Update the SQLModel user-store example for async SQLite sessions, SQLModel 0.0.45+, unique identifiers, and prefixed tables.
+
 ## [1.2.0] - 2026-10-24
 ### Added
 - Built-in SQLAlchemy user store: `authwarden.storage.sqlalchemy.SQLAlchemyUserStore`, with `create_tables()` and the `Base` metadata for Alembic. Install with `pip install "authwarden[sqlalchemy]"`. Async SQLAlchemy 2.0+, tested on SQLite and PostgreSQL. Email and username are case-insensitive and unique, and datetimes are timezone-aware on every database.
@@ -133,7 +146,8 @@ milestones rather than published package versions. Tagged on GitHub as
 - Exception hierarchy, Pydantic v2 models, `WardenConfig`,
   `AbstractUserStore` protocol, in-memory reference implementation.
 
-[Unreleased]: https://github.com/timihack/authwarden/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/timihack/authwarden/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/timihack/authwarden/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/timihack/authwarden/compare/v1.1.3...v1.2.0
 [1.1.3]: https://github.com/timihack/authwarden/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/timihack/authwarden/compare/v1.1.1...v1.1.2

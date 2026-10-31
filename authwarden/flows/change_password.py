@@ -1,7 +1,7 @@
 """Change password flow (authenticated)."""
 from __future__ import annotations
 
-from authwarden.authentication.jwt import JWTHandler
+from authwarden.authentication.strategy import TokenStrategy
 from authwarden.authentication.password import PasswordHandler
 from authwarden.core.config import WardenConfig
 from authwarden.exceptions import InvalidCredentials, PasswordNotSet, SamePassword, UserNotFound
@@ -19,7 +19,7 @@ async def change_password_flow(
     store: AbstractUserStore,
     config: WardenConfig,
     password_handler: PasswordHandler,
-    jwt_handler: JWTHandler,
+    jwt_handler: TokenStrategy,
     notification_service: AbstractNotificationService,
 ) -> TokenPair:
     """Change the authenticated user's password.
@@ -46,4 +46,4 @@ async def change_password_flow(
     user.updated_at = utcnow()
     await store.update(user)
     await notification_service.send_password_changed(user)
-    return jwt_handler.create_token_pair(user.id, roles=user.roles, scopes=user.scopes)
+    return await jwt_handler.issue_token_pair(user.id, roles=user.roles, scopes=user.scopes)

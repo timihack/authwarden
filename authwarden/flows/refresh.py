@@ -1,7 +1,7 @@
 """Token refresh flow."""
 from __future__ import annotations
 
-from authwarden.authentication.jwt import JWTHandler
+from authwarden.authentication.strategy import TokenStrategy
 from authwarden.core.config import WardenConfig
 from authwarden.exceptions import InvalidToken
 from authwarden.models.token import TokenPair
@@ -13,7 +13,7 @@ async def refresh_flow(
     *,
     store: AbstractUserStore,
     config: WardenConfig,
-    jwt_handler: JWTHandler,
+    jwt_handler: TokenStrategy,
 ) -> TokenPair:
     """Issue a new token pair from a valid refresh token.
 
@@ -33,4 +33,4 @@ async def refresh_flow(
     if config.enable_refresh_rotation:
         await jwt_handler.blacklist_token(refresh_token, expected_type="refresh")
 
-    return jwt_handler.create_token_pair(user.id, roles=user.roles, scopes=user.scopes)
+    return await jwt_handler.issue_token_pair(user.id, roles=user.roles, scopes=user.scopes)

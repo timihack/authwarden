@@ -7,7 +7,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/authwarden.svg)](https://pypi.org/project/authwarden/)
 [![Python versions](https://img.shields.io/pypi/pyversions/authwarden.svg)](https://pypi.org/project/authwarden/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/timihack/authwarden/blob/main/LICENSE)
-[![Tests](https://img.shields.io/badge/tests-441%20passing-brightgreen.svg)](https://github.com/timihack/authwarden)
+[![Tests](https://img.shields.io/badge/tests-521%20passing-brightgreen.svg)](https://github.com/timihack/authwarden)
 
 JWT auth, OAuth2 across 8 providers, MFA, RBAC, and full flow flexibility — all behind a clean FastAPI router you can drop into any app.
 
@@ -24,7 +24,7 @@ Most FastAPI auth tutorials show you a toy JWT example and stop there. authwarde
 - **Everything is a `Protocol`.** A SQLAlchemy store ships in the box (`authwarden[sqlalchemy]`). For anything else, the `AbstractUserStore` protocol works with MongoDB/Beanie, SQLModel, or Tortoise through a thin adapter you write. Same for your email/SMS provider and templates.
 - **Flexibility where it counts.** Verify by link or OTP. Notify by email, SMS, or both. Let users log in with email, username, or phone — your call, configured once.
 - **Security defaults that are actually defaults.** Brute-force lockout, OTP attempt limiting, encrypted OAuth tokens at rest, PKCE on every social login flow — none of it bolted on, none of it optional homework.
-- **A real test suite.** 390 tests across unit, flow, and full HTTP end-to-end coverage.
+- **A real test suite.** 521 tests across unit, flow, and full HTTP end-to-end coverage.
 
 ---
 
@@ -41,7 +41,7 @@ authwarden is a complete auth layer: routes, flows, and a storage protocol. [Aut
 | Role hierarchy and scopes | ✅ | Not in its feature list |
 | Login lockout and OTP attempt limits | ✅ | Not in its feature list |
 | Cookie transport | Not yet | ✅ |
-| Database and Redis token strategies | Not yet | ✅ |
+| Token strategies | JWT, Redis | JWT, database, Redis |
 | Built-in ORM stores | SQLAlchemy (more planned) | ✅ |
 
 Compared against the fastapi-users README as of October 2026. Check its current docs before deciding.
@@ -90,7 +90,7 @@ pip install authwarden
 Optional extras:
 
 ```bash
-pip install "authwarden[redis]"   # Redis-backed sessions and token blacklist
+pip install "authwarden[redis]"   # Redis sessions, token blacklist, and token strategy
 pip install "authwarden[sns]"     # AWS SNS SMS backend
 pip install "authwarden[sqlalchemy]"  # built-in SQLAlchemy user store
 pip install "authwarden[all]"     # everything

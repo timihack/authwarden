@@ -12,7 +12,7 @@ Some backends have additional dependencies that aren't installed by default, to 
 
 | Extra | Installs | Needed for |
 |---|---|---|
-| `redis` | `redis` | `RedisSessionBackend`, `RedisTokenBlacklist` |
+| `redis` | `redis` | `RedisSessionBackend`, `RedisTokenBlacklist`, `RedisTokenStrategy` |
 | `sns` | `boto3` | `AWSSNSSmsBackend` |
 | `sqlalchemy` | `sqlalchemy[asyncio]` | `SQLAlchemyUserStore` (you also install a database driver such as `asyncpg` or `aiosqlite`) |
 | `all` | both of the above | everything |

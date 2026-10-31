@@ -533,7 +533,7 @@ class TestPasswordEndpoints:
             from authwarden.models.user import UserInDB as UDB
             user = UDB(email="p9@x.com", hashed_password=None, is_active=True, is_verified=True)
             await warden.store.create(user)
-            pair = warden.jwt_handler.create_token_pair(user.id)
+            pair = await warden.jwt_handler.issue_token_pair(user.id)
             r = await c.post("/auth/set-password", json={"new_password": "newstrongpassword"},
                 headers={"Authorization": f"Bearer {pair.access_token}"})
             assert r.status_code == 200
@@ -781,7 +781,7 @@ class TestOAuthEndpoints:
             user = UDB(email="oa3@x.com", hashed_password=None, is_active=True, is_verified=True)
             await warden.store.create(user)
             await warden.store.create_oauth_account(OAuthAccount(user_id=user.id, provider="google", provider_user_id="gid"))
-            pair = warden.jwt_handler.create_token_pair(user.id)
+            pair = await warden.jwt_handler.issue_token_pair(user.id)
             r = await c.delete("/auth/oauth/google/disconnect", headers={"Authorization": f"Bearer {pair.access_token}"})
             assert r.status_code == 400
 
@@ -807,3 +807,4 @@ class TestOAuthEndpoints:
             await warden.store.create_oauth_account(OAuthAccount(user_id=user.id, provider="google", provider_user_id="gid2"))
             r = await c.delete("/auth/oauth/google/disconnect", headers={"Authorization": f"Bearer {token}"})
             assert r.status_code == 204
+            

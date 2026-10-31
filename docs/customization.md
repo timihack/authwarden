@@ -74,14 +74,25 @@ warden = AuthWarden(config=config, user_store=store, password_handler=PasswordHa
 
 Mostly useful if you want to construct it with non-default settings before passing it in — the hasher algorithm itself is chosen via `WardenConfig.password_hasher`.
 
+## Token strategy
+
+Tokens are JWTs by default. Switch to opaque, server-side tokens with instant revocation by passing a [Redis token strategy](concepts/token-strategies.md):
+
+```python
+warden = AuthWarden(config=config, user_store=store, token_strategy=RedisTokenStrategy.from_url(config, "redis://localhost:6379/0"))
+```
+
 ## Token blacklist (multi-process deployments)
 
 `MemoryTokenBlacklist` (the default) only works within a single process. For anything horizontally scaled, use Redis:
 
 ```python
+import redis.asyncio as redis
+
 from authwarden.authentication.jwt import RedisTokenBlacklist
 
-warden = AuthWarden(config=config, user_store=store, token_blacklist=RedisTokenBlacklist(redis_url="redis://..."))
+client = redis.from_url("redis://localhost:6379/0")
+warden = AuthWarden(config=config, user_store=store, token_blacklist=RedisTokenBlacklist(client))
 ```
 
 ## OAuth state storage (multi-process deployments)
@@ -105,5 +116,5 @@ config = WardenConfig(secret_key="...", session_backend="redis", redis_url="redi
 A few things are fixed by design rather than configurable — noted here so you're not searching for an option that doesn't exist:
 
 - **Transport** — tokens are always returned in the JSON response body; there's no built-in cookie transport. See the [project roadmap](https://github.com/timihack/authwarden/discussions) — this is planned post-1.0.
-- **Validation strategy** — always JWT; database/Redis-backed session-style validation isn't an alternative today, also on the roadmap.
+- **Database-backed tokens** — the token strategies are JWT and Redis. A database-backed strategy isn't built in. You can write your own with the [three-method interface](concepts/token-strategies.md#writing-your-own-strategy).
 - **SAML / Enterprise OIDC** — only consumer OAuth (fixed named providers) is supported currently; per-tenant identity provider configs are on the roadmap.

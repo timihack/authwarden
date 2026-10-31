@@ -240,6 +240,15 @@ class JWTHandler:
         refresh_token=self.create_refresh_token(user_id, roles, scopes),
     )
   
+  async def issue_token_pair(
+      self,
+      user_id: str,
+      roles: list[str] | None = None,
+      scopes: list[str] | None = None,
+  ) -> TokenPair:
+    """Async form of ``create_token_pair``, so every token strategy shares one interface."""
+    return self.create_token_pair(user_id, roles, scopes)
+
   def decode_token(self, token: str, expected_type: str = "access") -> TokenPayload:
     """Decode and validate a JWT token's signature and claims.
 
@@ -342,4 +351,4 @@ class JWTHandler:
       if await self.is_blacklisted(payload.jti):
           raise TokenRevoked()
       return payload
- 
+  
