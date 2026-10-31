@@ -12,6 +12,7 @@ from typing import Callable
 from fastapi import APIRouter
 
 from authwarden.authentication.jwt import AbstractTokenBlacklist, JWTHandler, MemoryTokenBlacklist
+from authwarden.authentication.strategy import TokenStrategy
 from authwarden.authentication.oauth import OAuthProviderBase, build_oauth_provider
 from authwarden.authentication.oauth_state import AbstractOAuthStateStore, MemoryOAuthStateStore
 from authwarden.authentication.password import PasswordHandler
@@ -105,6 +106,7 @@ class AuthWarden:
     sms_templates: SmsTemplates | None = None,
     password_handler: PasswordHandler | None = None,
     token_blacklist: AbstractTokenBlacklist | None = None,
+    token_strategy: TokenStrategy | None = None,
     session_backend: AbstractSessionBackend | None = None,
     oauth_state_store: AbstractOAuthStateStore | None = None,
   ) -> None:
@@ -121,6 +123,9 @@ class AuthWarden:
         password_handler: Override the default PasswordHandler.
         token_blacklist:  Override the default MemoryTokenBlacklist
             (pass a RedisTokenBlacklist for multi-process deployments).
+            Only applies to the default JWT strategy.
+        token_strategy:   Replace JWT with another token strategy, for example
+            RedisTokenStrategy for opaque, server-side tokens.
         session_backend:  Override the config-driven session backend.
         oauth_state_store: Override the default MemoryOAuthStateStore
             (use a Redis-backed implementation for multi-process deployments).
@@ -129,7 +134,12 @@ class AuthWarden:
     self.store = user_store
 
     self.password_handler = password_handler or PasswordHandler(config)
-    self.jwt_handler = JWTHandler(config, blacklist=token_blacklist or MemoryTokenBlacklist())
+    if token_strategy is not None and token_blacklist is not None:
+      raise ValueError("token_blacklist only applies to the default JWT strategy")
+    self.token_strategy: TokenStrategy = token_strategy or JWTHandler(
+      config, blacklist=token_blacklist or MemoryTokenBlacklist()
+    )
+    self.jwt_handler = self.token_strategy
     self.session_backend = session_backend if session_backend is not None else _build_session_backend(config)
 
     resolved_email_backend = email_backend or _build_email_backend(config)
@@ -226,3 +236,4 @@ class AuthWarden:
       Usage: ``Depends(warden.require_scopes("write"))``
       """
       return self._require_scopes_factory(*scopes, require_all=require_all)
+  

@@ -45,6 +45,7 @@ nav:
       - The AuthWarden Facade: concepts/facade.md
       - User Store (Database): concepts/user-store.md
       - User Model: concepts/user-model.md
+      - Token Strategies: concepts/token-strategies.md
   - Authentication Flows:
       - Registration: flows/registration.md
       - Verification: flows/verification.md
